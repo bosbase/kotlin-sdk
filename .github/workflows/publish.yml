@@ -1,0 +1,65 @@
+name: Publish to Maven Central
+
+# 只在推送 v1.0.0、v2.3.4 这类版本 tag 时触发
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read          # 默认就有
+  id-token: write         # 部分新插件需要（保险起见加上）
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      # IMPORTANT: OSSRH reached EOL on June 30, 2025. Migrated to Central Publishing Portal.
+      # Generate new Portal user token from https://central.sonatype.com
+      # See: https://central.sonatype.org/pages/ossrh-eol/#process-to-migrate
+      OSSRH_USERNAME: ${{ secrets.MAVEN_CENTRAL_USER }} # Portal token username (from central.sonatype.com)
+      OSSRH_PASSWORD: ${{ secrets.MAVEN_CENTRAL_TOKEN }} # Portal token password (from central.sonatype.com)
+      SIGNING_KEY_ID: ${{ secrets.SIGNING_KEY_ID }}       # GPG signing key ID (last 8 chars)
+      SIGNING_KEY: ${{ secrets.SIGNING_KEY }}             # GPG private key (ASCII-armored format)
+      SIGNING_PASSWORD: ${{ secrets.SIGNING_PASSWORD }}   # GPG key passphrase (empty if key has no passphrase)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # 签名需要完整的 git 历史
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Verify signing credentials
+        run: |
+          if [ -z "$SIGNING_KEY_ID" ] || [ -z "$SIGNING_KEY" ]; then
+            echo "❌ ERROR: SIGNING_KEY_ID or SIGNING_KEY is not set"
+            echo "Please configure the following GitHub Secrets:"
+            echo "  - SIGNING_KEY_ID: Last 8 characters of your GPG key ID"
+            echo "  - SIGNING_KEY: Your ASCII-armored GPG private key"
+            echo "  - SIGNING_PASSWORD: Your GPG key passphrase (optional)"
+            echo ""
+            echo "See GET_SIGNING_CREDENTIALS.md for instructions on how to get these values."
+            exit 1
+          fi
+          echo "✅ Signing credentials are set"
+          echo "SIGNING_KEY_ID: ${SIGNING_KEY_ID}"
+          echo "SIGNING_KEY length: ${#SIGNING_KEY} characters"
+
+      - name: Publish & Auto-Release to Maven Central
+        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-configuration-cache
+
+      - name: Success message
+        if: success()
+        run: |
+          echo "🎉 发布成功！"
+          echo "几小时后可以在 https://central.sonatype.com 搜索你的包"
+          echo "或者直接在项目中使用：implementation(\"你的groupId:你的artifactId:新版本号\")"
