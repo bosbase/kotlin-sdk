@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.bosbase"
-version = "0.1.2"
+version = "0.1.5"
 
 repositories {
     mavenCentral()
