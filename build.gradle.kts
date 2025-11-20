@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.bosbase"
-version = "0.1.5"
+version = "0.1.6"
 
 repositories {
     mavenCentral()
@@ -20,8 +20,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3") // 2.0.20 推荐
     testImplementation(kotlin("test"))
     // ============ 关键：强制升级 BouncyCastle 支持 Ed25519 ============
-    implementation("org.bouncycastle:bcpg-jdk18on:1.78.1")
-    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    // implementation("org.bouncycastle:bcpg-jdk18on:1.78.1")
+    // implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
 }
 
 tasks.test {
