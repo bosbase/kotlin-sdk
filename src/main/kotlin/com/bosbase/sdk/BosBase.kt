@@ -1,10 +1,12 @@
 package com.bosbase.sdk
 
+import com.bosbase.sdk.services.BackupService
 import com.bosbase.sdk.services.BatchService
 import com.bosbase.sdk.services.CacheService
 import com.bosbase.sdk.services.CollectionService
 import com.bosbase.sdk.services.CronService
 import com.bosbase.sdk.services.FileService
+import com.bosbase.sdk.services.GraphQLService
 import com.bosbase.sdk.services.HealthService
 import com.bosbase.sdk.services.LangChaingoService
 import com.bosbase.sdk.services.LLMDocumentService
@@ -13,7 +15,6 @@ import com.bosbase.sdk.services.RecordService
 import com.bosbase.sdk.services.RealtimeService
 import com.bosbase.sdk.services.SettingsService
 import com.bosbase.sdk.services.VectorService
-import com.bosbase.sdk.services.BackupService
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -72,6 +73,7 @@ class BosBase(
     val llmDocuments = LLMDocumentService(this)
     val langchaingo = LangChaingoService(this)
     val caches = CacheService(this)
+    val graphql = GraphQLService(this)
     val settings = SettingsService(this)
 
     var beforeSend: ((String, RequestOptions) -> BeforeSendResult?)? = null
