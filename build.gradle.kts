@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.bosbase"
-version = "0.1.6"
+version = "0.1.7"
 
 repositories {
     mavenCentral()
@@ -60,12 +60,12 @@ val hasSigningCredentials = signingKeyId != null && signingKey != null && signin
 signing {
     // Make signing optional - don't fail if credentials are not available
     isRequired = hasSigningCredentials
-    
+
     if (hasSigningCredentials) {
         // At this point, we know signingKeyId and signingKey are not null due to hasSigningCredentials check
         val keyId = signingKeyId!!
         val key = signingKey!!
-        
+
         // Validate key format
         if (!key.startsWith("-----BEGIN PGP")) {
             throw GradleException(
@@ -76,7 +76,7 @@ signing {
                 "See GET_SIGNING_CREDENTIALS.md for instructions."
             )
         }
-        
+
         if (!key.contains("-----END PGP PRIVATE KEY BLOCK-----")) {
             throw GradleException(
                 "Invalid PGP key format. Key must include '-----END PGP PRIVATE KEY BLOCK-----' marker.\n" +
@@ -84,17 +84,17 @@ signing {
                 "See GET_SIGNING_CREDENTIALS.md for instructions."
             )
         }
-        
+
         if (keyId.length != 8) {
             logger.warn("SIGNING_KEY_ID should be 8 characters (last 8 chars of your GPG key ID). Got: ${keyId.length} chars")
         }
-        
+
         // Log key info for debugging (without exposing the actual key)
         logger.info("Attempting to configure PGP signing with key ID: $keyId")
         logger.info("Key length: ${key.length} characters")
         logger.info("Key starts with: ${key.take(40)}...")
         logger.info("Key ends with: ...${key.takeLast(40)}")
-        
+
         // Additional validation: check key structure
         val keyLines = key.lines()
         if (keyLines.size < 5) {
@@ -104,12 +104,12 @@ signing {
                 "Export with: gpg --armor --export-secret-keys YOUR_KEY_ID"
             )
         }
-        
+
         // Verify key has proper line structure (PGP keys should have base64-encoded lines)
-        val base64Lines = keyLines.filter { 
-            it.isNotBlank() && 
-            !it.startsWith("-----") && 
-            !it.contains("Version:") && 
+        val base64Lines = keyLines.filter {
+            it.isNotBlank() &&
+            !it.startsWith("-----") &&
+            !it.contains("Version:") &&
             !it.contains("Comment:")
         }
         if (base64Lines.isEmpty()) {
@@ -118,7 +118,7 @@ signing {
                 "The key should contain base64-encoded data between the BEGIN and END markers."
             )
         }
-        
+
         // Check if key might be missing newlines (common issue with environment variables)
         if (!key.contains("\n") && key.length > 100) {
             throw GradleException(
@@ -129,7 +129,7 @@ signing {
                 "Make sure to preserve newlines when setting the environment variable."
             )
         }
-        
+
         try {
             // GPG keys should be ASCII-armored format (starts with "-----BEGIN PGP PRIVATE KEY BLOCK-----")
             // GitHub Secrets typically store them as plain text, not base64 encoded
@@ -172,14 +172,14 @@ signing {
 tasks.register("validateSigningKey") {
     group = "verification"
     description = "Validates PGP signing key configuration without attempting to sign"
-    
+
     doLast {
         val keyId = System.getenv("SIGNING_KEY_ID")?.trim()
         val keyRaw = System.getenv("SIGNING_KEY")
         val password = System.getenv("SIGNING_PASSWORD") ?: ""
-        
+
         println("=== PGP Signing Key Validation ===\n")
-        
+
         if (keyId == null) {
             println("❌ SIGNING_KEY_ID is not set")
         } else {
@@ -188,13 +188,13 @@ tasks.register("validateSigningKey") {
                 println("   ⚠️  Warning: Should be 8 characters (last 8 chars of your GPG key ID)")
             }
         }
-        
+
         if (keyRaw == null || keyRaw.isBlank()) {
             println("❌ SIGNING_KEY is not set")
         } else {
             val key = keyRaw.trim().replace("\\n", "\n").replace("\r\n", "\n").replace("\r", "\n")
             println("✅ SIGNING_KEY: Set (${key.length} chars)")
-            
+
             // Validate format
             if (!key.startsWith("-----BEGIN PGP")) {
                 println("   ❌ Invalid format: Should start with '-----BEGIN PGP PRIVATE KEY BLOCK-----'")
@@ -202,16 +202,16 @@ tasks.register("validateSigningKey") {
             } else {
                 println("   ✅ Starts with correct marker")
             }
-            
+
             if (!key.contains("-----END PGP PRIVATE KEY BLOCK-----")) {
                 println("   ❌ Missing END marker: '-----END PGP PRIVATE KEY BLOCK-----'")
             } else {
                 println("   ✅ Contains END marker")
             }
-            
+
             val keyLines = key.lines()
             println("   Key has ${keyLines.size} lines")
-            
+
             if (!key.contains("\n") && key.length > 100) {
                 println("   ❌ CRITICAL: Key appears to be missing newlines!")
                 println("   This will cause 'Could not read PGP secret key' error.")
@@ -219,22 +219,22 @@ tasks.register("validateSigningKey") {
             } else {
                 println("   ✅ Key has newlines")
             }
-            
-            val base64Lines = keyLines.filter { 
-                it.isNotBlank() && 
-                !it.startsWith("-----") && 
-                !it.contains("Version:") && 
+
+            val base64Lines = keyLines.filter {
+                it.isNotBlank() &&
+                !it.startsWith("-----") &&
+                !it.contains("Version:") &&
                 !it.contains("Comment:")
             }
             println("   Contains ${base64Lines.size} base64-encoded data lines")
         }
-        
+
         if (password.isEmpty()) {
             println("⚠️  SIGNING_PASSWORD is not set (may be required if key has passphrase)")
         } else {
             println("✅ SIGNING_PASSWORD: Set")
         }
-        
+
         println("\n=== Validation Complete ===")
         println("\nTo test signing configuration, run:")
         println("  ./gradlew validateSigningKey")
