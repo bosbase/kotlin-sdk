@@ -11,6 +11,7 @@ import com.bosbase.sdk.services.HealthService
 import com.bosbase.sdk.services.LangChaingoService
 import com.bosbase.sdk.services.LLMDocumentService
 import com.bosbase.sdk.services.LogService
+import com.bosbase.sdk.services.PubSubService
 import com.bosbase.sdk.services.RecordService
 import com.bosbase.sdk.services.RealtimeService
 import com.bosbase.sdk.services.SettingsService
@@ -74,6 +75,7 @@ class BosBase(
     val langchaingo = LangChaingoService(this)
     val caches = CacheService(this)
     val graphql = GraphQLService(this)
+    val pubsub = PubSubService(this)
     val settings = SettingsService(this)
 
     var beforeSend: ((String, RequestOptions) -> BeforeSendResult?)? = null
