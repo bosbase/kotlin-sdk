@@ -37,6 +37,8 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 - **[Collections](docs/COLLECTIONS.md)** - Collection management, fields, indexes, API rules
 - **[Files](docs/FILES.md)** - File uploads, downloads, thumbnails, protected files
 - **[Realtime](docs/REALTIME.md)** - Real-time subscriptions and live updates
+- **[SQL Execution](docs/SQL_EXECUTION_API.md)** - Superuser SQL execution helper
+- **[Custom Token Auth](docs/CUSTOM_TOKEN_AUTH.md)** - Bind/unbind tokens and authenticate with them
 
 > 📚 **Reference**: The Kotlin SDK mirrors the JavaScript SDK API. For additional examples and concepts, see the [JavaScript SDK documentation](../js-sdk/docs/).
 
@@ -47,6 +49,8 @@ Comprehensive documentation is available in the [`docs/`](docs/) directory:
 - `pb.collections` exposes collection CRUD plus scaffold helpers (`createBase`, `createAuth`, `createView`)
 - `pb.files` builds download URLs and requests private file tokens
 - Services mirror the JS SDK: collections, records, logs, realtime, health, backups, crons, vectors, LLM documents, LangChaingo, caches, settings, and transactional batch operations
+- Custom auth flows: bind/unbind tokens (`bindCustomToken`, `unbindCustomToken`), token login (`authWithToken`), and automatic token refresh for superusers
+- Superuser SQL execution via `pb.sql.execute()` to run ad-hoc SQL through `/api/sql/execute`
 - Filter helper `pb.filter("title ~ {:title}", mapOf("title" to "demo"))` mirrors the JS SDK escaping rules
 - Multipart uploads via `FileAttachment.fromFile(...)` or `FileAttachment(filename, bytes, contentType)`
 - Persistent auth stores (`LocalAuthStore`, `AsyncAuthStore`) for JVM and Android

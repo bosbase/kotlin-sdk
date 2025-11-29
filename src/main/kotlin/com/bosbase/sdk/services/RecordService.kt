@@ -159,6 +159,115 @@ class RecordService(
         return authData
     }
 
+    fun bindCustomToken(
+        email: String,
+        password: String,
+        token: String,
+        body: Map<String, Any?>? = null,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+        requestKey: String? = null,
+    ): Boolean {
+        val payload = mutableMapOf<String, Any?>(
+            "email" to email,
+            "password" to password,
+            "token" to token,
+        )
+        if (body != null) payload.putAll(body)
+
+        client.send(
+            "$baseCollectionPath/bind-token",
+            method = "POST",
+            body = payload,
+            query = query,
+            headers = headers,
+            requestKey = requestKey,
+        )
+        return true
+    }
+
+    fun unbindCustomToken(
+        email: String,
+        password: String,
+        token: String,
+        body: Map<String, Any?>? = null,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+        requestKey: String? = null,
+    ): Boolean {
+        val payload = mutableMapOf<String, Any?>(
+            "email" to email,
+            "password" to password,
+            "token" to token,
+        )
+        if (body != null) payload.putAll(body)
+
+        client.send(
+            "$baseCollectionPath/unbind-token",
+            method = "POST",
+            body = payload,
+            query = query,
+            headers = headers,
+            requestKey = requestKey,
+        )
+        return true
+    }
+
+    fun authWithToken(
+        token: String,
+        expand: String? = null,
+        fields: String? = null,
+        body: Map<String, Any?>? = null,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+        autoRefreshThresholdSeconds: Long? = null,
+        requestKey: String? = null,
+    ): JsonObject {
+        val payload = mutableMapOf<String, Any?>("token" to token)
+        if (body != null) payload.putAll(body)
+
+        val params = mutableMapOf<String, Any?>()
+        if (expand != null) params["expand"] = expand
+        if (fields != null) params["fields"] = fields
+        if (query != null) params.putAll(query)
+
+        val data = client.send(
+            "$baseCollectionPath/auth-with-token",
+            method = "POST",
+            body = payload,
+            query = params,
+            headers = headers,
+            requestKey = requestKey,
+        )
+        val authData = authResponse(data)
+
+        if (autoRefreshThresholdSeconds != null && isSuperusers) {
+            val refreshQuery = mutableMapOf<String, Any?>("autoRefresh" to true)
+            if (query != null) refreshQuery.putAll(query)
+
+            client.registerAutoRefresh(
+                autoRefreshThresholdSeconds,
+                { authRefresh(query = refreshQuery, headers = headers) },
+                {
+                    val reauthQuery = mutableMapOf<String, Any?>("autoRefresh" to true)
+                    if (query != null) reauthQuery.putAll(query)
+                    authWithToken(
+                        token,
+                        expand,
+                        fields,
+                        body,
+                        reauthQuery,
+                        headers,
+                        null,
+                        requestKey,
+                    )
+                },
+            )
+        }
+
+        return authData
+    }
+
     fun authRefresh(
         body: Map<String, Any?>? = null,
         query: Map<String, Any?>? = null,

@@ -14,6 +14,7 @@ import com.bosbase.sdk.services.LogService
 import com.bosbase.sdk.services.PubSubService
 import com.bosbase.sdk.services.RecordService
 import com.bosbase.sdk.services.RealtimeService
+import com.bosbase.sdk.services.SQLService
 import com.bosbase.sdk.services.SettingsService
 import com.bosbase.sdk.services.VectorService
 import kotlinx.serialization.json.Json
@@ -77,6 +78,7 @@ class BosBase(
     val graphql = GraphQLService(this)
     val pubsub = PubSubService(this)
     val settings = SettingsService(this)
+    val sql = SQLService(this)
 
     var beforeSend: ((String, RequestOptions) -> BeforeSendResult?)? = null
     var afterSend: ((okhttp3.Response, JsonElement?, RequestOptions) -> JsonElement?)? = null
