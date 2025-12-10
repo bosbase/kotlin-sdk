@@ -11,9 +11,13 @@ import com.bosbase.sdk.services.HealthService
 import com.bosbase.sdk.services.LangChaingoService
 import com.bosbase.sdk.services.LLMDocumentService
 import com.bosbase.sdk.services.LogService
+import com.bosbase.sdk.services.PluginService
 import com.bosbase.sdk.services.PubSubService
+import com.bosbase.sdk.services.RedisService
 import com.bosbase.sdk.services.RecordService
 import com.bosbase.sdk.services.RealtimeService
+import com.bosbase.sdk.services.ScriptPermissionsService
+import com.bosbase.sdk.services.ScriptService
 import com.bosbase.sdk.services.SQLService
 import com.bosbase.sdk.services.SettingsService
 import com.bosbase.sdk.services.VectorService
@@ -38,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 private val MEDIA_TYPE_JSON = "application/json; charset=utf-8".toMediaType()
-private const val USER_AGENT = "bosbase-kotlin-sdk/0.1.0"
+internal const val USER_AGENT = "bosbase-kotlin-sdk/0.1.0"
 
 private data class AutoRefreshState(
     val thresholdSeconds: Long,
@@ -79,6 +83,10 @@ class BosBase(
     val pubsub = PubSubService(this)
     val settings = SettingsService(this)
     val sql = SQLService(this)
+    val redis = RedisService(this)
+    val scripts = ScriptService(this)
+    val scriptsPermissions = ScriptPermissionsService(this)
+    val plugins = PluginService(this)
 
     var beforeSend: ((String, RequestOptions) -> BeforeSendResult?)? = null
     var afterSend: ((okhttp3.Response, JsonElement?, RequestOptions) -> JsonElement?)? = null

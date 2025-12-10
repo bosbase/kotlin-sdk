@@ -3,6 +3,7 @@ package com.bosbase.sdk
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import java.util.Base64
@@ -32,6 +33,12 @@ open class BaseAuthStore(
 
     open val isValid: Boolean
         get() = !isTokenExpired(token)
+
+    open val isSuperuser: Boolean
+        get() {
+            val collectionId = model?.get("collectionId")?.jsonPrimitive?.contentOrNull
+            return collectionId == "_superusers" || collectionId == "_pbc_2773867675"
+        }
 
     open fun save(newToken: String, newModel: JsonObject?) {
         baseToken = newToken

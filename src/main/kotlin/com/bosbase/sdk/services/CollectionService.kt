@@ -14,6 +14,11 @@ import kotlinx.serialization.json.jsonPrimitive
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+data class SqlTableDefinition(
+    val name: String,
+    val sql: String? = null,
+)
+
 class CollectionService(client: BosBase) : BaseCrudService(client) {
     override val baseCrudPath: String = "/api/collections"
 
@@ -64,6 +69,53 @@ class CollectionService(client: BosBase) : BaseCrudService(client) {
         if (overrides != null) scaffoldOverrides.putAll(overrides)
         if (viewQuery != null) scaffoldOverrides["viewQuery"] = viewQuery
         return createFromScaffold("view", name, scaffoldOverrides, headers)
+    }
+
+    fun registerSqlTables(
+        tables: List<String>,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+    ): List<JsonObject> {
+        if (tables.isEmpty()) {
+            throw IllegalArgumentException("At least one table name is required")
+        }
+
+        val data = client.send(
+            "$baseCrudPath/sql/tables",
+            method = "POST",
+            body = mapOf("tables" to tables),
+            query = query,
+            headers = headers,
+        )
+        return (data as? JsonArray)?.mapNotNull { it as? JsonObject } ?: emptyList()
+    }
+
+    fun importSqlTables(
+        tables: List<SqlTableDefinition>,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        if (tables.isEmpty()) {
+            throw IllegalArgumentException("At least one table definition is required")
+        }
+
+        val normalizedTables = tables.map { def ->
+            if (def.name.isBlank()) {
+                throw IllegalArgumentException("Table name is required")
+            }
+            mutableMapOf<String, Any?>("name" to def.name).apply {
+                if (!def.sql.isNullOrBlank()) this["sql"] = def.sql
+            }
+        }
+
+        val data = client.send(
+            "$baseCrudPath/sql/import",
+            method = "POST",
+            body = mapOf("tables" to normalizedTables),
+            query = query,
+            headers = headers,
+        )
+        return (data as? JsonObject) ?: JsonObject(emptyMap())
     }
 
     fun truncate(
