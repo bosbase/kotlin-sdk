@@ -52,6 +52,13 @@ class LLMDocumentService(client: BosBase) : BaseService(client) {
         return client.send("${collectionPath(collection)}/${encodePath(documentId)}", query = query, headers = headers) as? JsonObject
     }
 
+    fun getOne(
+        collection: String,
+        documentId: String,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+    ): JsonObject? = get(collection, documentId, query, headers)
+
     fun update(
         collection: String,
         documentId: String,

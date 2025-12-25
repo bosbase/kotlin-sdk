@@ -19,6 +19,18 @@ data class SqlTableDefinition(
     val sql: String? = null,
 )
 
+data class OAuth2ProviderConfig(
+    val name: String,
+    val clientId: String,
+    val clientSecret: String,
+    val authURL: String,
+    val tokenURL: String,
+    val userInfoURL: String,
+    val displayName: String? = null,
+    val pkce: Boolean? = null,
+    val extra: Map<String, Any?>? = null,
+)
+
 class CollectionService(client: BosBase) : BaseCrudService(client) {
     override val baseCrudPath: String = "/api/collections"
 
@@ -378,6 +390,295 @@ class CollectionService(client: BosBase) : BaseCrudService(client) {
 
     fun getAllSchemas(headers: Map<String, String>? = null): JsonObject? {
         return client.send("$baseCrudPath/schemas", headers = headers) as? JsonObject
+    }
+
+    fun setListRule(
+        collectionIdOrName: String,
+        rule: String?,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        return updateRule(collectionIdOrName, "listRule", rule, headers)
+    }
+
+    fun setViewRule(
+        collectionIdOrName: String,
+        rule: String?,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        return updateRule(collectionIdOrName, "viewRule", rule, headers)
+    }
+
+    fun setCreateRule(
+        collectionIdOrName: String,
+        rule: String?,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        return updateRule(collectionIdOrName, "createRule", rule, headers)
+    }
+
+    fun setUpdateRule(
+        collectionIdOrName: String,
+        rule: String?,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        return updateRule(collectionIdOrName, "updateRule", rule, headers)
+    }
+
+    fun setDeleteRule(
+        collectionIdOrName: String,
+        rule: String?,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        return updateRule(collectionIdOrName, "deleteRule", rule, headers)
+    }
+
+    fun setRules(
+        collectionIdOrName: String,
+        rules: Map<String, Any?>,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = getOne(collectionIdOrName, headers = headers)
+        val updated = collection.toMutableAnyMap()
+
+        val allowedKeys = setOf("listRule", "viewRule", "createRule", "updateRule", "deleteRule")
+        rules.forEach { (key, value) ->
+            if (allowedKeys.contains(key)) {
+                updated[key] = value
+            }
+        }
+
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun getRules(
+        collectionIdOrName: String,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = getOne(collectionIdOrName, headers = headers)
+        val result = mutableMapOf<String, Any?>()
+        result["listRule"] = collection["listRule"]
+        result["viewRule"] = collection["viewRule"]
+        result["createRule"] = collection["createRule"]
+        result["updateRule"] = collection["updateRule"]
+        result["deleteRule"] = collection["deleteRule"]
+        return (toJsonElement(result) as? JsonObject) ?: JsonObject(emptyMap())
+    }
+
+    fun setManageRule(
+        collectionIdOrName: String,
+        rule: String?,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        updated["manageRule"] = rule
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun setAuthRule(
+        collectionIdOrName: String,
+        rule: String?,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        updated["authRule"] = rule
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun enableOAuth2(
+        collectionIdOrName: String,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        val oauth = oauth2Map(collection)
+        oauth["enabled"] = true
+        oauth.putIfAbsent("mappedFields", emptyMap<String, Any?>())
+        oauth.putIfAbsent("providers", emptyList<Any>())
+        updated["oauth2"] = oauth
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun disableOAuth2(
+        collectionIdOrName: String,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        val oauth = oauth2Map(collection)
+        if (oauth.isNotEmpty()) {
+            oauth["enabled"] = false
+            updated["oauth2"] = oauth
+        }
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun getOAuth2Config(
+        collectionIdOrName: String,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val oauth = collection["oauth2"] as? JsonObject
+
+        val result = mutableMapOf<String, Any?>()
+        result["enabled"] = oauth?.get("enabled")?.jsonPrimitive?.booleanOrNull ?: false
+        result["mappedFields"] = oauth?.get("mappedFields") ?: JsonObject(emptyMap())
+        result["providers"] = oauth?.get("providers") ?: JsonArray(emptyList())
+        return (toJsonElement(result) as? JsonObject) ?: JsonObject(emptyMap())
+    }
+
+    fun setOAuth2MappedFields(
+        collectionIdOrName: String,
+        mappedFields: Map<String, String>,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        val oauth = oauth2Map(collection)
+        oauth["mappedFields"] = mappedFields
+        oauth.putIfAbsent("enabled", false)
+        oauth.putIfAbsent("providers", emptyList<Any>())
+        updated["oauth2"] = oauth
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun addOAuth2Provider(
+        collectionIdOrName: String,
+        provider: OAuth2ProviderConfig,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        val oauth = oauth2Map(collection)
+        val providers = providersList(oauth)
+
+        if (providers.any { providerNameFrom(it) == provider.name }) {
+            throw IllegalArgumentException("OAuth2 provider with name \"${provider.name}\" already exists")
+        }
+
+        val providerMap = mutableMapOf<String, Any?>(
+            "name" to provider.name,
+            "clientId" to provider.clientId,
+            "clientSecret" to provider.clientSecret,
+            "authURL" to provider.authURL,
+            "tokenURL" to provider.tokenURL,
+            "userInfoURL" to provider.userInfoURL,
+            "displayName" to (provider.displayName ?: provider.name),
+        )
+        if (provider.pkce != null) providerMap["pkce"] = provider.pkce
+        if (provider.extra != null) providerMap["extra"] = provider.extra
+
+        providers.add(providerMap)
+        oauth["providers"] = providers
+        oauth.putIfAbsent("enabled", false)
+        oauth.putIfAbsent("mappedFields", emptyMap<String, Any?>())
+        updated["oauth2"] = oauth
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun updateOAuth2Provider(
+        collectionIdOrName: String,
+        providerName: String,
+        updates: Map<String, Any?>,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        val oauth = oauth2Map(collection)
+        val providers = providersList(oauth)
+
+        val index = providers.indexOfFirst { providerNameFrom(it) == providerName }
+        if (index == -1) {
+            throw IllegalArgumentException("OAuth2 provider with name \"$providerName\" not found")
+        }
+
+        val provider = providerToMutableMap(providers[index])
+        updates.forEach { (key, value) ->
+            provider[key] = value
+        }
+        providers[index] = provider
+        oauth["providers"] = providers
+        updated["oauth2"] = oauth
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    fun removeOAuth2Provider(
+        collectionIdOrName: String,
+        providerName: String,
+        headers: Map<String, String>? = null,
+    ): JsonObject {
+        val collection = requireAuthCollection(collectionIdOrName, headers)
+        val updated = collection.toMutableAnyMap()
+        val oauth = oauth2Map(collection)
+        val providers = providersList(oauth)
+
+        val filtered = providers.filterNot { providerNameFrom(it) == providerName }.toMutableList()
+        if (filtered.size == providers.size) {
+            throw IllegalArgumentException("OAuth2 provider with name \"$providerName\" not found")
+        }
+
+        oauth["providers"] = filtered
+        updated["oauth2"] = oauth
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    private fun updateRule(
+        collectionIdOrName: String,
+        field: String,
+        rule: String?,
+        headers: Map<String, String>?,
+    ): JsonObject {
+        val collection = getOne(collectionIdOrName, headers = headers)
+        val updated = collection.toMutableAnyMap()
+        updated[field] = rule
+        return update(collectionIdOrName, updated, headers = headers)
+    }
+
+    private fun requireAuthCollection(collectionIdOrName: String, headers: Map<String, String>?): JsonObject {
+        val collection = getOne(collectionIdOrName, headers = headers)
+        val type = collection["type"]?.jsonPrimitive?.contentOrNull
+        if (type != "auth") {
+            throw IllegalArgumentException("Operation is only available for auth collections")
+        }
+        return collection
+    }
+
+    private fun oauth2Map(collection: JsonObject): MutableMap<String, Any?> {
+        val oauth = collection["oauth2"] as? JsonObject ?: return mutableMapOf()
+        return oauth.entries.associate { it.key to it.value }.toMutableMap()
+    }
+
+    private fun providersList(oauth: MutableMap<String, Any?>): MutableList<Any?> {
+        val raw = oauth["providers"]
+        return when (raw) {
+            is JsonArray -> raw.toMutableList()
+            is Iterable<*> -> raw.toMutableList()
+            else -> mutableListOf()
+        }
+    }
+
+    private fun providerNameFrom(provider: Any?): String? {
+        return when (provider) {
+            is JsonObject -> provider["name"]?.jsonPrimitive?.contentOrNull
+            is Map<*, *> -> provider["name"]?.let { asString(it) }
+            else -> null
+        }
+    }
+
+    private fun providerToMutableMap(provider: Any?): MutableMap<String, Any?> {
+        return when (provider) {
+            is JsonObject -> provider.entries.associate { it.key to it.value }.toMutableMap()
+            is Map<*, *> -> provider.entries.associate { it.key.toString() to it.value }.toMutableMap()
+            else -> mutableMapOf()
+        }
+    }
+
+    private fun asString(value: Any?): String? {
+        return when (value) {
+            is JsonPrimitive -> value.contentOrNull
+            else -> value?.toString()
+        }
     }
 
     private fun deepMerge(target: MutableMap<String, Any?>, source: Map<String, Any?>) {

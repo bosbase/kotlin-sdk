@@ -9,6 +9,14 @@ import java.nio.charset.StandardCharsets
 
 class FileService(client: BosBase) : BaseService(client) {
 
+    fun getUrl(
+        record: JsonObject,
+        filename: String,
+        query: Map<String, Any?>? = null,
+    ): String {
+        return getURL(record, filename, query = query)
+    }
+
     fun getURL(
         record: JsonObject,
         filename: String,

@@ -74,3 +74,6 @@ sdk use java 11.0.28-tem
 export JAVA_HOME=/path/to/jdk11
 ```
 
+
+ git tag -a v0.1.11 -m "Release"   git push origin v0.1.11
+

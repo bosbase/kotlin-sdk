@@ -618,6 +618,34 @@ class RecordService(
         return impersonated
     }
 
+    fun listExternalAuths(
+        recordId: String,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+    ): List<JsonObject> {
+        val filter = client.filter("recordRef = {:id}", mapOf("id" to recordId))
+        return client.collection("_externalAuths")
+            .getFullList(filter = filter, query = query, headers = headers)
+    }
+
+    fun unlinkExternalAuth(
+        recordId: String,
+        provider: String,
+        query: Map<String, Any?>? = null,
+        headers: Map<String, String>? = null,
+    ): Boolean {
+        val filter = client.filter(
+            "recordRef = {:recordId} && provider = {:provider}",
+            mapOf("recordId" to recordId, "provider" to provider),
+        )
+        val externalAuth = client.collection("_externalAuths")
+            .getFirstListItem(filter = filter, query = query, headers = headers)
+        val extId = externalAuth["id"]?.jsonPrimitive?.contentOrNull
+            ?: throw IllegalStateException("Missing external auth id.")
+        client.collection("_externalAuths").delete(extId, query = query, headers = headers)
+        return true
+    }
+
     override fun update(
         id: String,
         body: Map<String, Any?>,
